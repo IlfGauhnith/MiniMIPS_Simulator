@@ -150,7 +150,7 @@ class MIPS:
 
     def __str__(self):
         representation = "MEM"
-        representation = representation + str([f"{i}:{v}" for i, v in enumerate(self.memory) if v != 0 and not isinstance(v, AssemblyInstruction)]).replace(",", ";") + "\n"
+        representation = representation + str([f"{i}:{v}" for i, v in enumerate(self.memory) if v != 0 and not isinstance(v, AssemblyInstruction)]).replace(",", ";").replace(" ", "").replace("'", "") + "\n"
         representation = representation + "REGS["
 
         for key in self.Reg_dict.keys():
@@ -193,6 +193,9 @@ class MIPS:
                 self.assembly_instructions.append(self.translate_J_instruction(bin))
             else:
                 self.assembly_instructions.append(self.translate_I_instruction(bin))
+        with open("output/assembly_code.txt", "w") as file:
+            for instruction in self.assembly_instructions:
+                file.write(str(instruction) + "\n")
 
     def translate_J_instruction(self, b_instruction):
         assembly_instruction = AssemblyInstruction(MIPS.J_opcode_dict[b_instruction[0:6]])
@@ -401,6 +404,7 @@ class MIPS:
                 continue
 
             self.program_counter += 1
+            if self.program_counter >= len(self.memory): break
             file.write(str(self)+"\n")
 
     def add(self, first_reg, second_reg, dest_reg):
@@ -507,7 +511,7 @@ class MIPS:
         dest_reg.value = abs(first_reg.value) + abs(constant)
 
     def jr(self, first_reg):
-        self.program_counter = first_reg.value
+        self.program_counter = first_reg.value - 1
 
     def lui(self, dest_reg, constant):
         word = '{:016b}'.format(constant) + '{:016b}'.format(0)
@@ -521,15 +525,15 @@ class MIPS:
 
     def bltz(self, first_reg, constant):
         if first_reg.value < 0:
-            self.program_counter += constant
+            self.program_counter += constant - 1
 
     def beq(self, first_reg, second_reg, constant):
         if first_reg.value == second_reg.value:
-            self.program_counter += constant
+            self.program_counter += constant - 1
 
     def bne(self, first_reg, second_reg, constant):
         if first_reg.value != second_reg.value:
-            self.program_counter += constant
+            self.program_counter += constant - 1
 
     def lb(self, first_reg, second_reg, constant):
         word = ""
@@ -553,13 +557,12 @@ class MIPS:
         self.memory[second_reg.value + constant] = word
 
     def j(self, constant):
-        self.program_counter = constant
+        self.program_counter = constant - 1
 
     def jal(self, constant):
         self.Reg_dict["11111"].value = self.program_counter + 1
-        self.program_counter = constant
+        self.program_counter = constant - 1
 
 if __name__ == '__main__':
     mips = MIPS()
     mips.simulate("input/input.txt", "output/output.txt")
-    print(mips)
